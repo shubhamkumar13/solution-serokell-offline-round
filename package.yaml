@@ -1,0 +1,29 @@
+name:                todo-list
+version:             0.1.0.0
+
+dependencies:
+- base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+  default-extensions:
+    - OverloadedStrings
+    - GeneralizedNewtypeDeriving
+  dependencies:
+    - bytestring
+    - megaparsec
+    - parser-combinators
+    - transformers
+
+executables:
+  application:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+      - -Wall
+      - -Wextra
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - todo-list
