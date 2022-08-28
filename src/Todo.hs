@@ -20,9 +20,6 @@ newtype TodoList = TodoList [TodoItem]
 emptyTodoList :: TodoList
 emptyTodoList = TodoList []
 
-incrementIndex :: Index -> Index
-incrementIndex = Index . (+) 1 . getIndex
-
 newtype TodoListM a = TodoListM { runTodoListM :: StateT TodoList IO a }
   deriving (Functor, Applicative, Monad, MonadIO)
 
@@ -32,12 +29,14 @@ runTodoList = void . flip runStateT emptyTodoList . runTodoListM
 instance MonadTodoList TodoListM where
   add descr tags = do
      newTodoList <- TodoListM $ withStateT addTodoItem get
-     pure $ getIndex newTodoList
+     pure $ getLatestIndexValue newTodoList
     where
       addTodoItem (TodoList [])     = TodoList [TodoItem (Index 0) descr tags]
-      addTodoItem (TodoList (x:xs)) = TodoList $ TodoItem (incrementIndex $ tiIndex x) (tiDescription x) (tiTags x) : x : xs
+      addTodoItem (TodoList (x:xs)) = TodoList (TodoItem ((incrementIndex . tiIndex) x) descr tags : x : xs)
 
-      getIndex (TodoList xs) = tiIndex $ head xs
+      incrementIndex = Index . (+) 1 . getIndex
+
+      getLatestIndexValue (TodoList xs) = (tiIndex . head) xs
 
   done index =
     void $ TodoListM $ withStateT removeTodoItem get
