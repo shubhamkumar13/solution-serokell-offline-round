@@ -12,7 +12,7 @@ import Data.Function (on)
 import Data.List (intersect, map)
 import Data.List.NonEmpty (toList)
 
-import Types (MonadTodoList (..), TodoItem (..), Description (..), Index (..), Tag (..))
+import Types (MonadTodoList (..), TodoItem (..), Description (..), Index (..), Tag (..), SearchParams(..), SearchWord(..))
 
 newtype TodoList = TodoList [TodoItem]
   deriving (Show, Eq)
@@ -56,3 +56,27 @@ instance MonadTodoList TodoListM where
       where
         removeTodoItem (TodoList []) = TodoList []
         removeTodoItem (TodoList xs) = TodoList $ filter (\x -> tiIndex x == index) xs
+
+  search params = do
+    newTodoList <- TodoListM $ withStateT filterSearchTodoItems get
+    case newTodoList of
+      TodoList xs -> pure xs
+    where
+      filterSearchTodoItems (TodoList xs) = TodoList $
+        filter (\x ->
+          containsSearchWords (getDescription $ tiDescription x) ||
+          containsTags (map getTag $ tiTags x)) xs
+
+      containsSearchWords descr =
+              descr `elem` map getSearchWord (spWords params)
+          || containsSubseq descr (map getSearchWord $ spWords params)
+
+      containsTags tags = not (any (\tag ->
+                  tag `elem` map getTag (spTags params)
+                || containsSubseq tag (map getTag $ spTags params)) tags)
+
+      containsSubseq word searchParams = not (any
+            (\s ->
+              B.isPrefixOf s word ||
+              B.isSuffixOf s word ||
+              B.isInfixOf s word) searchParams)
