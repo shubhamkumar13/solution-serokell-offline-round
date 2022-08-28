@@ -23,18 +23,6 @@ emptyTodoList = TodoList []
 incrementIndex :: Index -> Index
 incrementIndex = Index . (+) 1 . getIndex
 
-createTodoItem :: Index -> Description -> [Tag] -> TodoItem
-createTodoItem index descr tags
-  | index == Index 0 = TodoItem
-                        (Index . getIndex $ index)
-                        (Description . getDescription $ descr)
-                        (map (Tag . getTag) tags)
-  | otherwise        = TodoItem
-                        (incrementIndex index)
-                        (Description . getDescription $ descr)
-                        (map (Tag . getTag) tags)
-
-
 newtype TodoListM a = TodoListM { runTodoListM :: StateT TodoList IO a }
   deriving (Functor, Applicative, Monad, MonadIO)
 
@@ -46,8 +34,8 @@ instance MonadTodoList TodoListM where
      newTodoList <- TodoListM $ withStateT addTodoItem get
      pure $ getIndex newTodoList
     where
-      addTodoItem (TodoList [])     = TodoList [createTodoItem (Index 0) descr tags]
-      addTodoItem (TodoList (x:xs)) = TodoList $ createTodoItem (tiIndex x) (tiDescription x) (tiTags x) : x : xs
+      addTodoItem (TodoList [])     = TodoList [TodoItem (Index 0) descr tags]
+      addTodoItem (TodoList (x:xs)) = TodoList $ TodoItem (incrementIndex $ tiIndex x) (tiDescription x) (tiTags x) : x : xs
 
       getIndex (TodoList xs) = tiIndex $ head xs
 
