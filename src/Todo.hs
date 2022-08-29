@@ -37,21 +37,21 @@ instance MonadTodoList TodoListM where
 
       getLatestIndexValue (TodoList xs) = (tiIndex . head) xs
 
-  done index = TodoListM $
+  done index = TodoListM $ do
     modify' removeTodoItem
       where
-        removeTodoItem (TodoList xs) = 
-              TodoList $ filter ((index /=) . tiIndex) xs
+        removeTodoItem (TodoList xs) = TodoList $ filter ((index /=) . tiIndex) xs
 
-  search params = TodoListM $
+  search params = TodoListM $ do
     filterTodoItems <$> get
     where
       filterTodoItems (TodoList xs) = filter (\x -> condWords x || condTags x) xs
 
-      condWords x = containsSearchWords <$> getDescription $ tiDescription x
-      condTags  x = containsTags <$> map getTag $ tiTags x
+      -- Conditions to filter the query parameters
+      condWords = containsSearchWords <$> getDescription . tiDescription
+      condTags  = containsTags <$> map getTag . tiTags
 
-      -- Check for SearchWords and Tags in queries and return a Bool
+      -- Check for query parameters in the TodoList
       containsSearchWords descr = 
               descr `elem` searchWordStrings ||
               containsSubseq descr searchWordStrings
@@ -66,6 +66,6 @@ instance MonadTodoList TodoListM where
               B.isSuffixOf s word ||
               B.isInfixOf s word)
 
-      -- Get the SearchWords and Tags as ByteStrings
+      -- Convert the query parameters as ByteStrings
       searchWordStrings = (map getSearchWord . spWords) params
       tagStrings        = (map getTag . spTags) params
