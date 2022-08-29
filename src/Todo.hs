@@ -29,38 +29,43 @@ runTodoList = void . flip runStateT emptyTodoList . runTodoListM
 
 instance MonadTodoList TodoListM where
   add descr tags = TodoListM $ do
-    modify' addTodoItem
+    modify' (TodoList <$> addTodoItem)
     getLatestIndexValue <$> get
     where
-      addTodoItem (TodoList [])     = TodoList [TodoItem (Index 0) descr tags]
-      addTodoItem (TodoList (x:xs)) = TodoList (TodoItem ((succ . tiIndex) x) descr tags : x : xs)
+      addTodoItem (TodoList [])     = [TodoItem (Index 0) descr tags]
+      addTodoItem (TodoList (x:xs)) = TodoItem ((succ . tiIndex) x) descr tags : x : xs
 
       getLatestIndexValue (TodoList xs) = (tiIndex . head) xs
 
-  done index = TodoListM $ do
+  done index = TodoListM $
     modify' removeTodoItem
       where
-        removeTodoItem (TodoList xs) = TodoList $
-          filter (\x -> index /= tiIndex x) xs
+        removeTodoItem (TodoList xs) = 
+              TodoList $ filter ((index /=) . tiIndex) xs
 
-  search params = TodoListM $ do
-    filterSearchTodoItems <$> get
+  search params = TodoListM $
+    filterTodoItems <$> get
     where
-      filterSearchTodoItems (TodoList xs) =
-         filter (\x ->
-          containsSearchWords (getDescription $ tiDescription x) || 
-          containsTags (map getTag $ tiTags x)) xs
+      filterTodoItems (TodoList xs) = filter (\x -> condWords x || condTags x) xs
 
-      containsSearchWords descr =
-              descr `elem` map getSearchWord (spWords params) || 
-              containsSubseq descr (map getSearchWord $ spWords params)
+      condWords x = containsSearchWords <$> getDescription $ tiDescription x
+      condTags  x = containsTags <$> map getTag $ tiTags x
+
+      -- Check for SearchWords and Tags in queries and return a Bool
+      containsSearchWords descr = 
+              descr `elem` searchWordStrings ||
+              containsSubseq descr searchWordStrings
 
       containsTags tags = any (\tag ->
-                  tag `elem` map getTag (spTags params) || 
-                  containsSubseq tag (map getTag $ spTags params)) tags
-
-      containsSubseq word searchParams = any
-            (\s ->
+              tag `elem` tagStrings ||
+              containsSubseq tag tagStrings) tags
+      
+      -- Check for partial matches in queries
+      containsSubseq word = any (\s ->
               B.isPrefixOf s word ||
               B.isSuffixOf s word ||
-              B.isInfixOf s word) searchParams
+              B.isInfixOf s word)
+
+      -- Get the SearchWords and Tags as ByteStrings
+      searchWordStrings = (map getSearchWord . spWords) params
+      tagStrings        = (map getTag . spTags) params
