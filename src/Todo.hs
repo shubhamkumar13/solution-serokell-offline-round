@@ -45,8 +45,6 @@ instance MonadTodoList TodoListM where
 
   search params = TodoListM $ do
     filterSearchTodoItems <$> get
-    -- case newTodoList of
-    --   TodoList xs -> pure xs
     where
       filterSearchTodoItems (TodoList xs) =
          filter (\x ->
