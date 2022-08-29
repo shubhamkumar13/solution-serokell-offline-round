@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 module Todo
   ( TodoListM
   , runTodoList
@@ -9,7 +10,7 @@ import Control.Monad.Trans.State.Strict (StateT, get, put, modify', withStateT, 
 import qualified Data.ByteString.Char8 as B
 import Data.Char (isLetter, toLower)
 import Data.Function (on)
-import Data.List (intersect, map)
+import Data.List (intersect, map, deleteBy)
 import Data.List.NonEmpty (toList)
 
 import Types (MonadTodoList (..), TodoItem (..), Description (..), Index (..), Tag (..), SearchParams(..), SearchWord(..))
@@ -27,22 +28,20 @@ runTodoList :: TodoListM a -> IO ()
 runTodoList = void . flip runStateT emptyTodoList . runTodoListM
 
 instance MonadTodoList TodoListM where
-  add descr tags = do
-     newTodoList <- TodoListM $ withStateT addTodoItem get
-     pure $ getLatestIndexValue newTodoList
+  add descr tags = TodoListM $ do
+    modify' addTodoItem
+    getLatestIndexValue <$> get
     where
       addTodoItem (TodoList [])     = TodoList [TodoItem (Index 0) descr tags]
-      addTodoItem (TodoList (x:xs)) = TodoList (TodoItem ((incrementIndex . tiIndex) x) descr tags : x : xs)
-
-      incrementIndex = Index . (+) 1 . getIndex
+      addTodoItem (TodoList (x:xs)) = TodoList (TodoItem ((succ . tiIndex) x) descr tags : x : xs)
 
       getLatestIndexValue (TodoList xs) = (tiIndex . head) xs
 
-  done index =
-    void $ TodoListM $ withStateT removeTodoItem get
+  done index = TodoListM $ do
+    modify' removeTodoItem
       where
-        removeTodoItem (TodoList []) = TodoList []
-        removeTodoItem (TodoList xs) = TodoList $ filter (\x -> tiIndex x == index) xs
+        removeTodoItem (TodoList xs) = TodoList $
+          filter (\x -> index /= tiIndex x) xs
 
   search params = do
     newTodoList <- TodoListM $ withStateT filterSearchTodoItems get
