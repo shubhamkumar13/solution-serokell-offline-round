@@ -25,10 +25,10 @@ data QueryResult
 
 toBytestring :: QueryResult -> B.ByteString
 toBytestring result = case result of
-  Added i     -> fromString (show i)
+  Added i     -> fromString (show $ getIndex i)
   Done        -> "done"
   Found items ->
-    fromString (show $ length items)
+    fromString (show (length items) <> " item(s) found")
     <> foldMap itemToBytestring items
     where
       itemToBytestring (TodoItem (Index index) (Description d) tags) =

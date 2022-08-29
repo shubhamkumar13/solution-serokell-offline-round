@@ -52,12 +52,12 @@ instance MonadTodoList TodoListM where
           containsTags (map getTag $ tiTags x)) xs
 
       containsSearchWords descr =
-              descr `elem` map getSearchWord (spWords params)
-          || containsSubseq descr (map getSearchWord $ spWords params)
+              descr `elem` map getSearchWord (spWords params) || 
+              containsSubseq descr (map getSearchWord $ spWords params)
 
       containsTags tags = any (\tag ->
-                  tag `elem` map getTag (spTags params)
-                || containsSubseq tag (map getTag $ spTags params)) tags
+                  tag `elem` map getTag (spTags params) || 
+                  containsSubseq tag (map getTag $ spTags params)) tags
 
       containsSubseq word searchParams = any
             (\s ->
