@@ -43,26 +43,26 @@ instance MonadTodoList TodoListM where
         removeTodoItem (TodoList xs) = TodoList $
           filter (\x -> index /= tiIndex x) xs
 
-  search params = do
-    newTodoList <- TodoListM $ withStateT filterSearchTodoItems get
-    case newTodoList of
-      TodoList xs -> pure xs
+  search params = TodoListM $ do
+    filterSearchTodoItems <$> get
+    -- case newTodoList of
+    --   TodoList xs -> pure xs
     where
-      filterSearchTodoItems (TodoList xs) = TodoList $
-        filter (\x ->
-          containsSearchWords (getDescription $ tiDescription x) ||
+      filterSearchTodoItems (TodoList xs) =
+         filter (\x ->
+          containsSearchWords (getDescription $ tiDescription x) || 
           containsTags (map getTag $ tiTags x)) xs
 
       containsSearchWords descr =
               descr `elem` map getSearchWord (spWords params)
           || containsSubseq descr (map getSearchWord $ spWords params)
 
-      containsTags tags = not (any (\tag ->
+      containsTags tags = any (\tag ->
                   tag `elem` map getTag (spTags params)
-                || containsSubseq tag (map getTag $ spTags params)) tags)
+                || containsSubseq tag (map getTag $ spTags params)) tags
 
-      containsSubseq word searchParams = not (any
+      containsSubseq word searchParams = any
             (\s ->
               B.isPrefixOf s word ||
               B.isSuffixOf s word ||
-              B.isInfixOf s word) searchParams)
+              B.isInfixOf s word) searchParams
